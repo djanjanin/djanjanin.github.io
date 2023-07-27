@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carbon Offset Calculator</title>
+  <style>
+    /* Add your CSS styling here */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 200px;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Carbon Offset Calculator</h1>
+  <label for="startPostcode">Start Postcode:</label>
+  <input type="text" id="startPostcode" required>
+  <button onclick="calculate()">Calculate</button>
+
+  <div id="result" style="display: none;">
+    <h2>Results</h2>
+    <p id="distanceResult">Distance: </p>
+    <p id="emissionResult">Carbon Emission: </p>
+    <p id="offsetCostResult">Carbon Offset Cost (£): </p>
+  </div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCo92H5JGbrV4YTOBgAOclAtbp_xhX5N04&libraries=places"></script>
+  <script>
+    function calculate() {
+      const destinationPostcode = new URLSearchParams(window.location.search).get("destinationPostcode");
+      const startPostcode = document.getElementById("startPostcode").value;
+
+      // Use the Google Maps Distance Matrix Service
+      const service = new google.maps.DistanceMatrixService();
+      service.getDistanceMatrix({
+        origins: [startPostcode],
+        destinations: [destinationPostcode],
+        travelMode: google.maps.TravelMode.DRIVING, // You can change the travel mode if needed
+        unitSystem: google.maps.UnitSystem.METRIC,
+      }, handleDistanceMatrix);
+
+      function handleDistanceMatrix(response, status) {
+        if (status === 'OK' && response.rows[0].elements[0].status === 'OK') {
+          const distance = response.rows[0].elements[0].distance.value / 1000; // Convert to kilometers
+          const emission = calculateCarbonEmission(distance);
+          const offsetCost = calculateOffsetCost(emission);
+
+          // Display the results
+          document.getElementById("distanceResult").textContent = `Distance: ${distance} km`;
+          document.getElementById("emissionResult").textContent = `Carbon Emission: ${emission}`;
+          document.getElementById("offsetCostResult").textContent = `Carbon Offset Cost (£): ${offsetCost}`;
+
+          document.getElementById("result").style.display = "block";
+        } else {
+          alert('Error: Unable to calculate the distance.');
+        }
+      }
+    }
+
+    function calculateCarbonEmission(distance) {
+      // Implement your logic to calculate carbon emission based on distance.
+      // For demonstration purposes, let's assume the emission is 0.2 kg CO2 per km.
+      const emissionFactor = 0.2; // 0.2 kg CO2 per kilometer
+      return (distance * emissionFactor).toFixed(2);
+    }
+
+    function calculateOffsetCost(emission) {
+      // Implement your logic to calculate the carbon offset cost based on emission.
+      // For demonstration purposes, let's assume the cost is £0.10 per kg CO2.
+      const costPerKgCO2 = 0.10;
+      return (emission * costPerKgCO2).toFixed(2);
+    }
+  </script>
+</body>
+</html>
