@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Hours</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCo92H5JGbrV4YTOBgAOclAtbp_xhX5N04&libraries=places"></script>
+</head>
+<body>
+    <h1>Business Hours</h1>
+    <div id="business-hours">Loading...</div>
+
+    <script>
+        function getBusinessHours() {
+            var service = new google.maps.places.PlacesService(document.createElement('div'));
+            service.getDetails({
+                placeId: 'ChIJg8IJxR8la0gRwvrc7KrlGIc'
+            }, function(place, status) {
+                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                    var businessHours = place.opening_hours.weekday_text;
+                    document.getElementById('business-hours').innerHTML = businessHours.join('<br>');
+                } else {
+                    document.getElementById('business-hours').innerHTML = 'Unable to load business hours.';
+                }
+            });
+        }
+
+        window.onload = getBusinessHours;
+    </script>
+</body>
+</html>
