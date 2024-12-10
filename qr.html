@@ -25,12 +25,6 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        input[type="file"] {
-            margin: 10px 0;
-            padding: 10px;
-            display: block;
-            width: 100%;
-        }
         button {
             background: #4CAF50;
             color: white;
@@ -39,11 +33,21 @@
             font-size: 16px;
             border-radius: 5px;
             cursor: pointer;
-            display: block;
+            margin: 5px 0;
             width: 100%;
         }
         button:hover {
             background: #45a049;
+        }
+        input[type="file"], textarea {
+            margin: 10px 0;
+            padding: 10px;
+            display: block;
+            width: 100%;
+        }
+        textarea {
+            resize: none;
+            height: 100px;
         }
         #output {
             margin-top: 20px;
@@ -57,72 +61,112 @@
 <body>
     <h1>QR & Business Card Scanner</h1>
     <div class="container">
-        <h2>Upload Photo</h2>
-        <input type="file" accept="image/*" capture="environment" id="fileInput">
+        <h2>Select Scan Mode</h2>
+        <button id="vcardButton">Scan vCard QR Code</button>
+        <button id="linkedinButton">Scan LinkedIn QR Code</button>
+        <button id="businessCardButton">Scan Business Card</button>
+        
+        <div id="scanSection">
+            <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none;">
+            <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc; display:none;"></div>
+        </div>
 
-        <h2>Or Scan QR Code</h2>
-        <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc;"></div>
-
-        <button id="processButton">Process Image</button>
+        <textarea id="notes" placeholder="Add notes here..."></textarea>
+        <button id="submitButton">Submit to Google Form</button>
         <div id="output">Results will appear here...</div>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
-        const processButton = document.getElementById('processButton');
-        const output = document.getElementById('output');
         const qrReader = new Html5Qrcode("qrReader");
+        const notesField = document.getElementById('notes');
+        const output = document.getElementById('output');
+        const scanSection = document.getElementById('scanSection');
 
-        // Initialize QR Code Reader
-        qrReader.start(
-            { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            },
-            (decodedText) => {
-                output.innerHTML = `<strong>QR Code Data:</strong> ${decodedText}`;
-                uploadToGoogleForm(decodedText);
-                qrReader.stop();
-            },
-            (errorMessage) => {
-                console.log("QR Reader Error:", errorMessage);
+        let scanMode = ''; // Tracks the selected scan mode
+        const formData = {};
+
+        document.getElementById('vcardButton').addEventListener('click', () => {
+            scanMode = 'vcard';
+            startQrReader();
+        });
+
+        document.getElementById('linkedinButton').addEventListener('click', () => {
+            scanMode = 'linkedin';
+            startQrReader();
+        });
+
+        document.getElementById('businessCardButton').addEventListener('click', () => {
+            scanMode = 'businessCard';
+            fileInput.style.display = 'block';
+            qrReader.stop().catch(console.error);
+            document.getElementById('qrReader').style.display = 'none';
+        });
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file && scanMode === 'businessCard') {
+                await processBusinessCard(file);
             }
-        ).catch(err => console.error(err));
+        });
 
-        processButton.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) {
-                output.innerHTML = "Please upload an image first.";
-                return;
-            }
+        document.getElementById('submitButton').addEventListener('click', () => {
+            formData.notes = notesField.value;
+            uploadToGoogleForm(formData);
+        });
 
-            // Use Tesseract.js to process business card
+        function startQrReader() {
+            fileInput.style.display = 'none';
+            document.getElementById('qrReader').style.display = 'block';
+            qrReader.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText) => {
+                    output.innerHTML = `<strong>${scanMode === 'vcard' ? 'vCard' : 'LinkedIn'} QR Data:</strong> ${decodedText}`;
+                    formData[scanMode === 'vcard' ? 'vcard' : 'linkedinUrl'] = decodedText;
+                    qrReader.stop().catch(console.error);
+                },
+                (errorMessage) => {
+                    console.log("QR Reader Error:", errorMessage);
+                }
+            ).catch(console.error);
+        }
+
+        async function processBusinessCard(file) {
+            output.innerHTML = "Processing image, please wait...";
             Tesseract.recognize(
                 file,
                 'eng',
                 { logger: info => console.log(info) }
             ).then(({ data: { text } }) => {
-                output.innerHTML = `<strong>Extracted Text:</strong><br>${text}`;
-                uploadToGoogleForm(text);
+                output.innerHTML = `<strong>Business Card Text:</strong><br>${text}`;
+                formData.businessCardText = text;
             }).catch(err => {
                 output.innerHTML = "Error processing image.";
                 console.error(err);
             });
-        });
+        }
 
         function uploadToGoogleForm(data) {
-            const formUrl = "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse";
+            const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSe503Ycu0A5XeLtkb77EK6331CX8V5beAH2SNzwa5iaIIrOWw/formResponse";
             const params = new URLSearchParams();
-            params.append("entry.123456789", data); // Replace with your Google Form field ID
+            if (data.vcard) params.append("entry.2005620554", data.vcard); // Full Name from vCard
+            if (data.linkedinUrl) params.append("entry.1065046570", data.linkedinUrl); // LinkedIn URL
+            if (data.businessCardText) params.append("entry.839337160", data.businessCardText); // Notes from Business Card
+            if (data.notes) params.append("entry.839337160", data.notes); // Additional Notes
 
             fetch(formUrl, {
                 method: "POST",
                 body: params
             }).then(response => {
+                output.innerHTML = "Data submitted successfully!";
                 console.log("Data uploaded:", response);
             }).catch(err => {
-                console.error("Error uploading to Google Form:", err);
+                output.innerHTML = "Error submitting data.";
+                console.error(err);
             });
         }
     </script>
