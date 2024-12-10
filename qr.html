@@ -71,12 +71,13 @@
         <h2>Form Fields</h2>
         <textarea id="notes" name="notes" placeholder="Add your notes here..."></textarea>
         <input type="text" id="fullName" name="fullName" placeholder="Full Name">
+        <input type="text" id="company" name="company" placeholder="Company">
         <input type="email" id="email" name="email" placeholder="Email Address">
         <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="Telephone Number">
         <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="LinkedIn URL">
 
         <!-- Submit Button -->
-        <button id="submitButton">Submit</button>
+        <button id="submitButton">Submit to Google Sheet</button>
         <div id="output">Results will appear here...</div>
         <div id="errorLogs" style="color: red;">Error logs will appear here...</div>
     </div>
@@ -90,6 +91,7 @@
 
         // Form Fields
         const fullNameField = document.getElementById('fullName');
+        const companyField = document.getElementById('company');
         const emailField = document.getElementById('email');
         const phoneNumberField = document.getElementById('phoneNumber');
         const linkedinUrlField = document.getElementById('linkedinUrl');
@@ -112,6 +114,8 @@
                         parseVCard(decodedText);
                     } else if (decodedText.includes('linkedin.com')) {
                         formData.linkedinUrl = decodedText;
+                    } else {
+                        parsePlainText(decodedText);
                     }
                     updateFormFields();
                     qrReader.stop().then(() => {
@@ -132,6 +136,18 @@
                 if (key === 'FN') formData.fullName = value.trim();
                 if (key === 'EMAIL') formData.email = value.trim();
                 if (key === 'TEL') formData.phoneNumber = value.trim();
+            }
+        }
+
+        // Parse Plain Text Data
+        function parsePlainText(plainText) {
+            const parts = plainText.split(/\s+/); // Split by whitespace
+            if (parts.length >= 3) {
+                formData.fullName = `${parts[0]} ${parts[1]}`;
+                formData.company = parts.slice(2, -1).join(' ');
+                formData.email = parts[parts.length - 1];
+            } else {
+                errorLogs.innerHTML = "Plain text QR code format is invalid. Ensure it contains at least 3 parts.";
             }
         }
 
@@ -161,6 +177,7 @@
         // Update Form Fields
         function updateFormFields() {
             fullNameField.value = formData.fullName || '';
+            companyField.value = formData.company || '';
             emailField.value = formData.email || '';
             phoneNumberField.value = formData.phoneNumber || '';
             linkedinUrlField.value = formData.linkedinUrl || '';
@@ -171,6 +188,7 @@
         document.getElementById('submitButton').addEventListener('click', () => {
             formData.notes = notesField.value;
             formData.fullName = fullNameField.value;
+            formData.company = companyField.value;
             formData.email = emailField.value;
             formData.phoneNumber = phoneNumberField.value;
             formData.linkedinUrl = linkedinUrlField.value;
