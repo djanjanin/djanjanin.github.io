@@ -173,23 +173,21 @@
             formData.phoneNumber = phoneNumberField.value;
             formData.linkedinUrl = linkedinUrlField.value;
 
-            const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSe503Ycu0A5XeLtkb77EK6331CX8V5beAH2SNzwa5iaIIrOWw/formResponse";
-            const params = new URLSearchParams();
-            if (formData.fullName) params.append("entry.2005620554", formData.fullName); // Full Name
-            if (formData.email) params.append("entry.1045781291", formData.email); // Email Address
-            if (formData.phoneNumber) params.append("entry.1166974658", formData.phoneNumber); // Phone Number
-            if (formData.linkedinUrl) params.append("entry.1065046570", formData.linkedinUrl); // LinkedIn URL
-            if (formData.notes) params.append("entry.839337160", formData.notes); // Notes
+            // Base URL of the Google Form
+            const googleFormBaseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSe503Ycu0A5XeLtkb77EK6331CX8V5beAH2SNzwa5iaIIrOWw/viewform";
 
-            fetch(formUrl, {
-                method: "POST",
-                body: params
-            }).then(response => {
-                output.innerHTML = "Data submitted successfully!";
-                console.log("Data uploaded:", response);
-            }).catch(err => {
-                errorLogs.innerHTML = `Submission Error: ${err.message}`;
+            // Query parameters for pre-filling the form
+            const queryParams = new URLSearchParams({
+                "entry.2005620554": formData.fullName || "",   // Full Name
+                "entry.1045781291": formData.email || "",      // Email Address
+                "entry.1166974658": formData.phoneNumber || "",// Telephone Number
+                "entry.1065046570": formData.linkedinUrl || "",// LinkedIn URL
+                "entry.839337160": formData.notes || ""        // Notes
             });
+
+            // Redirect to the Google Form with pre-filled data
+            const redirectUrl = `${googleFormBaseUrl}?${queryParams.toString()}`;
+            window.location.href = redirectUrl;
         });
     </script>
 </body>
