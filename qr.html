@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR & Business Card Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            display: block;
+            width: 100%;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f1f1f1;
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR & Business Card Scanner</h1>
+    <div class="container">
+        <h2>Upload Photo</h2>
+        <input type="file" accept="image/*" capture="environment" id="fileInput">
+
+        <h2>Or Scan QR Code</h2>
+        <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc;"></div>
+
+        <button id="processButton">Process Image</button>
+        <div id="output">Results will appear here...</div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const processButton = document.getElementById('processButton');
+        const output = document.getElementById('output');
+        const qrReader = new Html5Qrcode("qrReader");
+
+        // Initialize QR Code Reader
+        qrReader.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            (decodedText) => {
+                output.innerHTML = `<strong>QR Code Data:</strong> ${decodedText}`;
+                uploadToGoogleForm(decodedText);
+                qrReader.stop();
+            },
+            (errorMessage) => {
+                console.log("QR Reader Error:", errorMessage);
+            }
+        ).catch(err => console.error(err));
+
+        processButton.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                output.innerHTML = "Please upload an image first.";
+                return;
+            }
+
+            // Use Tesseract.js to process business card
+            Tesseract.recognize(
+                file,
+                'eng',
+                { logger: info => console.log(info) }
+            ).then(({ data: { text } }) => {
+                output.innerHTML = `<strong>Extracted Text:</strong><br>${text}`;
+                uploadToGoogleForm(text);
+            }).catch(err => {
+                output.innerHTML = "Error processing image.";
+                console.error(err);
+            });
+        });
+
+        function uploadToGoogleForm(data) {
+            const formUrl = "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse";
+            const params = new URLSearchParams();
+            params.append("entry.123456789", data); // Replace with your Google Form field ID
+
+            fetch(formUrl, {
+                method: "POST",
+                body: params
+            }).then(response => {
+                console.log("Data uploaded:", response);
+            }).catch(err => {
+                console.error("Error uploading to Google Form:", err);
+            });
+        }
+    </script>
+</body>
+</html>
