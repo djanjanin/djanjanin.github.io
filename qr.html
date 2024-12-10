@@ -49,7 +49,7 @@
             resize: none;
             height: 100px;
         }
-        #output {
+        #output, #errorLogs {
             margin-top: 20px;
             padding: 10px;
             background: #f1f1f1;
@@ -61,30 +61,24 @@
 <body>
     <h1>QR & Business Card Scanner</h1>
     <div class="container">
-        <!-- Notes Section -->
-        <h2>Add Notes</h2>
-        <textarea id="notes" placeholder="Add your notes here..."></textarea>
-
-        <!-- QR Code Scanner -->
-        <h2>Scan QR Code</h2>
+        <!-- Scan Buttons -->
         <button id="scanQrCodeButton">Scan QR Code</button>
-        <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc; display: none;"></div>
-
-        <!-- Business Card Scanner -->
-        <h2>Scan Business Card</h2>
-        <input type="file" accept="image/*" capture="environment" id="fileInput" style="display: none;">
         <button id="scanBusinessCardButton">Scan Business Card</button>
+        <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc; display: none;"></div>
+        <input type="file" accept="image/*" capture="environment" id="fileInput" style="display: none;">
 
         <!-- Form Fields -->
         <h2>Form Fields</h2>
-        <input type="text" id="fullName" placeholder="Full Name">
-        <input type="email" id="email" placeholder="Email Address">
-        <input type="tel" id="phoneNumber" placeholder="Telephone Number">
-        <input type="url" id="linkedinUrl" placeholder="LinkedIn URL">
+        <textarea id="notes" name="notes" placeholder="Add your notes here..."></textarea>
+        <input type="text" id="fullName" name="fullName" placeholder="Full Name">
+        <input type="email" id="email" name="email" placeholder="Email Address">
+        <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="Telephone Number">
+        <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="LinkedIn URL">
 
         <!-- Submit Button -->
         <button id="submitButton">Submit to Google Form</button>
         <div id="output">Results will appear here...</div>
+        <div id="errorLogs" style="color: red;">Error logs will appear here...</div>
     </div>
 
     <script>
@@ -92,6 +86,7 @@
         const qrReader = new Html5Qrcode("qrReader");
         const fileInput = document.getElementById('fileInput');
         const output = document.getElementById('output');
+        const errorLogs = document.getElementById('errorLogs');
 
         // Form Fields
         const fullNameField = document.getElementById('fullName');
@@ -103,6 +98,7 @@
 
         // QR Code Scan Button
         document.getElementById('scanQrCodeButton').addEventListener('click', () => {
+            document.getElementById('qrReader').style.display = 'block';
             qrReader.start(
                 { facingMode: "environment" },
                 {
@@ -112,23 +108,30 @@
                 (decodedText) => {
                     output.innerHTML = `<strong>QR Code Data:</strong> ${decodedText}`;
                     if (decodedText.includes('BEGIN:VCARD')) {
-                        // vCard detected
-                        formData.fullName = "Extracted Name"; // Add parsing logic
-                        formData.phoneNumber = "Extracted Phone"; // Add parsing logic
-                        formData.email = "Extracted Email"; // Add parsing logic
+                        parseVCard(decodedText);
                     } else if (decodedText.includes('linkedin.com')) {
-                        // LinkedIn URL detected
                         formData.linkedinUrl = decodedText;
                     }
                     updateFormFields();
-                    qrReader.stop().catch(console.error);
+                    qrReader.stop().then(() => {
+                        document.getElementById('qrReader').style.display = 'none';
+                    }).catch(console.error);
                 },
                 (errorMessage) => {
-                    console.log("QR Reader Error:", errorMessage);
+                    errorLogs.innerHTML = `QR Reader Error: ${errorMessage}`;
                 }
             ).catch(console.error);
-            document.getElementById('qrReader').style.display = 'block';
         });
+
+        // Parse vCard Data
+        function parseVCard(vCardData) {
+            const lines = vCardData.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('FN:')) formData.fullName = line.slice(3).trim();
+                if (line.startsWith('EMAIL:')) formData.email = line.slice(6).trim();
+                if (line.startsWith('TEL:')) formData.phoneNumber = line.slice(4).trim();
+            }
+        }
 
         // Business Card Scan Button
         document.getElementById('scanBusinessCardButton').addEventListener('click', () => {
@@ -145,13 +148,10 @@
                     { logger: info => console.log(info) }
                 ).then(({ data: { text } }) => {
                     output.innerHTML = `<strong>Business Card Text:</strong><br>${text}`;
-                    formData.fullName = "Extracted Name"; // Add parsing logic
-                    formData.phoneNumber = "Extracted Phone"; // Add parsing logic
-                    formData.email = "Extracted Email"; // Add parsing logic
+                    formData.notes = text;
                     updateFormFields();
                 }).catch(err => {
-                    output.innerHTML = "Error processing image.";
-                    console.error(err);
+                    errorLogs.innerHTML = `Tesseract Error: ${err.message}`;
                 });
             }
         });
@@ -162,6 +162,7 @@
             emailField.value = formData.email || '';
             phoneNumberField.value = formData.phoneNumber || '';
             linkedinUrlField.value = formData.linkedinUrl || '';
+            notesField.value = formData.notes || '';
         }
 
         // Submit Button
@@ -187,8 +188,7 @@
                 output.innerHTML = "Data submitted successfully!";
                 console.log("Data uploaded:", response);
             }).catch(err => {
-                output.innerHTML = "Error submitting data.";
-                console.error(err);
+                errorLogs.innerHTML = `Submission Error: ${err.message}`;
             });
         });
     </script>
