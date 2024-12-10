@@ -39,7 +39,7 @@
         button:hover {
             background: #45a049;
         }
-        input[type="file"], textarea {
+        input, textarea {
             margin: 10px 0;
             padding: 10px;
             display: block;
@@ -61,63 +61,48 @@
 <body>
     <h1>QR & Business Card Scanner</h1>
     <div class="container">
-        <h2>Select Scan Mode</h2>
-        <button id="vcardButton">Scan vCard QR Code</button>
-        <button id="linkedinButton">Scan LinkedIn QR Code</button>
-        <button id="businessCardButton">Scan Business Card</button>
-        
-        <div id="scanSection">
-            <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none;">
-            <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc; display:none;"></div>
-        </div>
+        <!-- Notes Section -->
+        <h2>Add Notes</h2>
+        <textarea id="notes" placeholder="Add your notes here..."></textarea>
 
-        <textarea id="notes" placeholder="Add notes here..."></textarea>
+        <!-- QR Code Scanner -->
+        <h2>Scan QR Code</h2>
+        <button id="scanQrCodeButton">Scan QR Code</button>
+        <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc; display: none;"></div>
+
+        <!-- Business Card Scanner -->
+        <h2>Scan Business Card</h2>
+        <input type="file" accept="image/*" capture="environment" id="fileInput" style="display: none;">
+        <button id="scanBusinessCardButton">Scan Business Card</button>
+
+        <!-- Form Fields -->
+        <h2>Form Fields</h2>
+        <input type="text" id="fullName" placeholder="Full Name">
+        <input type="email" id="email" placeholder="Email Address">
+        <input type="tel" id="phoneNumber" placeholder="Telephone Number">
+        <input type="url" id="linkedinUrl" placeholder="LinkedIn URL">
+
+        <!-- Submit Button -->
         <button id="submitButton">Submit to Google Form</button>
         <div id="output">Results will appear here...</div>
     </div>
 
     <script>
-        const fileInput = document.getElementById('fileInput');
-        const qrReader = new Html5Qrcode("qrReader");
         const notesField = document.getElementById('notes');
+        const qrReader = new Html5Qrcode("qrReader");
+        const fileInput = document.getElementById('fileInput');
         const output = document.getElementById('output');
-        const scanSection = document.getElementById('scanSection');
 
-        let scanMode = ''; // Tracks the selected scan mode
-        const formData = {};
+        // Form Fields
+        const fullNameField = document.getElementById('fullName');
+        const emailField = document.getElementById('email');
+        const phoneNumberField = document.getElementById('phoneNumber');
+        const linkedinUrlField = document.getElementById('linkedinUrl');
 
-        document.getElementById('vcardButton').addEventListener('click', () => {
-            scanMode = 'vcard';
-            startQrReader();
-        });
+        let formData = {};
 
-        document.getElementById('linkedinButton').addEventListener('click', () => {
-            scanMode = 'linkedin';
-            startQrReader();
-        });
-
-        document.getElementById('businessCardButton').addEventListener('click', () => {
-            scanMode = 'businessCard';
-            fileInput.style.display = 'block';
-            qrReader.stop().catch(console.error);
-            document.getElementById('qrReader').style.display = 'none';
-        });
-
-        fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file && scanMode === 'businessCard') {
-                await processBusinessCard(file);
-            }
-        });
-
-        document.getElementById('submitButton').addEventListener('click', () => {
-            formData.notes = notesField.value;
-            uploadToGoogleForm(formData);
-        });
-
-        function startQrReader() {
-            fileInput.style.display = 'none';
-            document.getElementById('qrReader').style.display = 'block';
+        // QR Code Scan Button
+        document.getElementById('scanQrCodeButton').addEventListener('click', () => {
             qrReader.start(
                 { facingMode: "environment" },
                 {
@@ -125,38 +110,75 @@
                     qrbox: { width: 250, height: 250 }
                 },
                 (decodedText) => {
-                    output.innerHTML = `<strong>${scanMode === 'vcard' ? 'vCard' : 'LinkedIn'} QR Data:</strong> ${decodedText}`;
-                    formData[scanMode === 'vcard' ? 'vcard' : 'linkedinUrl'] = decodedText;
+                    output.innerHTML = `<strong>QR Code Data:</strong> ${decodedText}`;
+                    if (decodedText.includes('BEGIN:VCARD')) {
+                        // vCard detected
+                        formData.fullName = "Extracted Name"; // Add parsing logic
+                        formData.phoneNumber = "Extracted Phone"; // Add parsing logic
+                        formData.email = "Extracted Email"; // Add parsing logic
+                    } else if (decodedText.includes('linkedin.com')) {
+                        // LinkedIn URL detected
+                        formData.linkedinUrl = decodedText;
+                    }
+                    updateFormFields();
                     qrReader.stop().catch(console.error);
                 },
                 (errorMessage) => {
                     console.log("QR Reader Error:", errorMessage);
                 }
             ).catch(console.error);
+            document.getElementById('qrReader').style.display = 'block';
+        });
+
+        // Business Card Scan Button
+        document.getElementById('scanBusinessCardButton').addEventListener('click', () => {
+            fileInput.style.display = 'block';
+        });
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                output.innerHTML = "Processing image, please wait...";
+                Tesseract.recognize(
+                    file,
+                    'eng',
+                    { logger: info => console.log(info) }
+                ).then(({ data: { text } }) => {
+                    output.innerHTML = `<strong>Business Card Text:</strong><br>${text}`;
+                    formData.fullName = "Extracted Name"; // Add parsing logic
+                    formData.phoneNumber = "Extracted Phone"; // Add parsing logic
+                    formData.email = "Extracted Email"; // Add parsing logic
+                    updateFormFields();
+                }).catch(err => {
+                    output.innerHTML = "Error processing image.";
+                    console.error(err);
+                });
+            }
+        });
+
+        // Update Form Fields
+        function updateFormFields() {
+            fullNameField.value = formData.fullName || '';
+            emailField.value = formData.email || '';
+            phoneNumberField.value = formData.phoneNumber || '';
+            linkedinUrlField.value = formData.linkedinUrl || '';
         }
 
-        async function processBusinessCard(file) {
-            output.innerHTML = "Processing image, please wait...";
-            Tesseract.recognize(
-                file,
-                'eng',
-                { logger: info => console.log(info) }
-            ).then(({ data: { text } }) => {
-                output.innerHTML = `<strong>Business Card Text:</strong><br>${text}`;
-                formData.businessCardText = text;
-            }).catch(err => {
-                output.innerHTML = "Error processing image.";
-                console.error(err);
-            });
-        }
+        // Submit Button
+        document.getElementById('submitButton').addEventListener('click', () => {
+            formData.notes = notesField.value;
+            formData.fullName = fullNameField.value;
+            formData.email = emailField.value;
+            formData.phoneNumber = phoneNumberField.value;
+            formData.linkedinUrl = linkedinUrlField.value;
 
-        function uploadToGoogleForm(data) {
             const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSe503Ycu0A5XeLtkb77EK6331CX8V5beAH2SNzwa5iaIIrOWw/formResponse";
             const params = new URLSearchParams();
-            if (data.vcard) params.append("entry.2005620554", data.vcard); // Full Name from vCard
-            if (data.linkedinUrl) params.append("entry.1065046570", data.linkedinUrl); // LinkedIn URL
-            if (data.businessCardText) params.append("entry.839337160", data.businessCardText); // Notes from Business Card
-            if (data.notes) params.append("entry.839337160", data.notes); // Additional Notes
+            if (formData.fullName) params.append("entry.2005620554", formData.fullName); // Full Name
+            if (formData.email) params.append("entry.1045781291", formData.email); // Email Address
+            if (formData.phoneNumber) params.append("entry.1166974658", formData.phoneNumber); // Phone Number
+            if (formData.linkedinUrl) params.append("entry.1065046570", formData.linkedinUrl); // LinkedIn URL
+            if (formData.notes) params.append("entry.839337160", formData.notes); // Notes
 
             fetch(formUrl, {
                 method: "POST",
@@ -168,7 +190,7 @@
                 output.innerHTML = "Error submitting data.";
                 console.error(err);
             });
-        }
+        });
     </script>
 </body>
 </html>
