@@ -76,7 +76,7 @@
         <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="LinkedIn URL">
 
         <!-- Submit Button -->
-        <button id="submitButton">Submit to Google Sheet</button>
+        <button id="submitButton">Submit</button>
         <div id="output">Results will appear here...</div>
         <div id="errorLogs" style="color: red;">Error logs will appear here...</div>
     </div>
@@ -176,7 +176,7 @@
             formData.linkedinUrl = linkedinUrlField.value;
 
             // Google Apps Script URL
-            const scriptURL = "https://script.google.com/a/macros/janin.co.uk/s/AKfycbzMvrs-ubDuk1E2499NMqyHvAZW-hUHaab5UDUp_mOAscnyl2a0HSnV50GvOIQV6ozs/exec";
+            const scriptURL = "https://script.google.com/macros/s/AKfycbw8OMhBYKwfe-vsfDp3GbPMTfEZNU8EFWpdZReuPxt_-cLxxbfR3hMsuwPlJ9n8aHJAjg/exec";
 
             const params = new URLSearchParams(formData);
 
