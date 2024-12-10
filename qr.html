@@ -127,9 +127,9 @@
         function parseVCard(vCardData) {
             const lines = vCardData.split('\n');
             for (const line of lines) {
-                if (line.startsWith('FN:')) formData.fullName = line.slice(3).trim();
-                if (line.startsWith('EMAIL:')) formData.email = line.slice(6).trim();
-                if (line.startsWith('TEL:')) formData.phoneNumber = line.slice(4).trim();
+                if (line.startsWith('FN')) formData.fullName = line.slice(3).trim();
+                if (line.startsWith('EMAIL')) formData.email = line.slice(6).trim();
+                if (line.startsWith('TEL')) formData.phoneNumber = line.slice(4).trim();
             }
         }
 
