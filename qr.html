@@ -76,7 +76,7 @@
         <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="LinkedIn URL">
 
         <!-- Submit Button -->
-        <button id="submitButton">Submit to Google Form</button>
+        <button id="submitButton">Submit to Google Sheet</button>
         <div id="output">Results will appear here...</div>
         <div id="errorLogs" style="color: red;">Error logs will appear here...</div>
     </div>
@@ -103,7 +103,8 @@
                 { facingMode: "environment" },
                 {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 }
+                    qrbox: { width: 250, height: 250 },
+                    disableFlip: true,
                 },
                 (decodedText) => {
                     output.innerHTML = `<strong>QR Code Data:</strong> ${decodedText}`;
@@ -127,9 +128,10 @@
         function parseVCard(vCardData) {
             const lines = vCardData.split('\n');
             for (const line of lines) {
-                if (line.startsWith('FN')) formData.fullName = line.slice(3).trim();
-                if (line.startsWith('EMAIL')) formData.email = line.slice(6).trim();
-                if (line.startsWith('TEL')) formData.phoneNumber = line.slice(4).trim();
+                const [key, value] = line.split(/[:;]/); // Supports both colon and semicolon delimiters
+                if (key === 'FN') formData.fullName = value.trim();
+                if (key === 'EMAIL') formData.email = value.trim();
+                if (key === 'TEL') formData.phoneNumber = value.trim();
             }
         }
 
@@ -173,21 +175,22 @@
             formData.phoneNumber = phoneNumberField.value;
             formData.linkedinUrl = linkedinUrlField.value;
 
-            // Base URL of the Google Form
-            const googleFormBaseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSe503Ycu0A5XeLtkb77EK6331CX8V5beAH2SNzwa5iaIIrOWw/viewform";
+            // Google Apps Script URL
+            const scriptURL = "https://script.google.com/a/macros/janin.co.uk/s/AKfycbzMvrs-ubDuk1E2499NMqyHvAZW-hUHaab5UDUp_mOAscnyl2a0HSnV50GvOIQV6ozs/exec";
 
-            // Query parameters for pre-filling the form
-            const queryParams = new URLSearchParams({
-                "entry.2005620554": formData.fullName || "",   // Full Name
-                "entry.1045781291": formData.email || "",      // Email Address
-                "entry.1166974658": formData.phoneNumber || "",// Telephone Number
-                "entry.1065046570": formData.linkedinUrl || "",// LinkedIn URL
-                "entry.839337160": formData.notes || ""        // Notes
-            });
+            const params = new URLSearchParams(formData);
 
-            // Redirect to the Google Form with pre-filled data
-            const redirectUrl = `${googleFormBaseUrl}?${queryParams.toString()}`;
-            window.location.href = redirectUrl;
+            fetch(scriptURL, {
+                method: "POST",
+                body: params
+            })
+                .then(response => response.text())
+                .then(data => {
+                    output.innerHTML = "Data submitted successfully!";
+                })
+                .catch(err => {
+                    errorLogs.innerHTML = `Submission Error: ${err.message}`;
+                });
         });
     </script>
 </body>
