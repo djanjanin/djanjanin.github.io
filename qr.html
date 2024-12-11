@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR & Business Card Scanner</title>
+    <title>Oracle Graph Interest Form</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
     <style>
@@ -11,22 +11,22 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: #f9f9f9;
+            background: #FDF3F3;
         }
         h1 {
             text-align: center;
-            color: #333;
+            color: #E62328;
         }
         .container {
             max-width: 500px;
             margin: 20px auto;
             padding: 20px;
-            background: white;
+            background: #FFFFFF;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         button {
-            background: #4CAF50;
+            background: #E62328;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -37,29 +37,34 @@
             width: 100%;
         }
         button:hover {
-            background: #45a049;
+            background: #C41E22;
         }
         input, textarea {
             margin: 10px 0;
             padding: 10px;
             display: block;
             width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
         textarea {
             resize: none;
             height: 100px;
         }
-        #output, #errorLogs {
+        #output {
             margin-top: 20px;
             padding: 10px;
-            background: #f1f1f1;
+            background: #F5F5F5;
             border-radius: 5px;
             word-wrap: break-word;
+            text-align: center;
+            color: #28A745;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>QR & Business Card Scanner</h1>
+    <h1>Oracle Graph Interest Form</h1>
     <div class="container">
         <!-- Scan Buttons -->
         <button id="scanQrCodeButton">Scan QR Code</button>
@@ -77,9 +82,8 @@
         <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="LinkedIn URL">
 
         <!-- Submit Button -->
-        <button id="submitButton">Submit to Google Sheet</button>
-        <div id="output">Results will appear here...</div>
-        <div id="errorLogs" style="color: red;">Error logs will appear here...</div>
+        <button id="submitButton">Submit</button>
+        <div id="output"></div>
     </div>
 
     <script>
@@ -87,7 +91,6 @@
         const qrReader = new Html5Qrcode("qrReader");
         const fileInput = document.getElementById('fileInput');
         const output = document.getElementById('output');
-        const errorLogs = document.getElementById('errorLogs');
 
         // Form Fields
         const fullNameField = document.getElementById('fullName');
@@ -109,7 +112,6 @@
                     disableFlip: true,
                 },
                 (decodedText) => {
-                    output.innerHTML = `<strong>QR Code Data:</strong> ${decodedText}`;
                     if (decodedText.includes('BEGIN:VCARD')) {
                         parseVCard(decodedText);
                     } else if (decodedText.includes('linkedin.com')) {
@@ -121,9 +123,6 @@
                     qrReader.stop().then(() => {
                         document.getElementById('qrReader').style.display = 'none';
                     }).catch(console.error);
-                },
-                (errorMessage) => {
-                    errorLogs.innerHTML = `QR Reader Error: ${errorMessage}`;
                 }
             ).catch(console.error);
         });
@@ -146,8 +145,6 @@
                 formData.fullName = `${parts[0]} ${parts[1]}`;
                 formData.company = parts.slice(2, -1).join(' ');
                 formData.email = parts[parts.length - 1];
-            } else {
-                errorLogs.innerHTML = "Plain text QR code format is invalid. Ensure it contains at least 3 parts.";
             }
         }
 
@@ -159,18 +156,14 @@
         fileInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (file) {
-                output.innerHTML = "Processing image, please wait...";
                 Tesseract.recognize(
                     file,
                     'eng',
                     { logger: info => console.log(info) }
                 ).then(({ data: { text } }) => {
-                    output.innerHTML = `<strong>Business Card Text:</strong><br>${text}`;
                     formData.notes = text;
                     updateFormFields();
-                }).catch(err => {
-                    errorLogs.innerHTML = `Tesseract Error: ${err.message}`;
-                });
+                }).catch(console.error);
             }
         });
 
@@ -204,12 +197,23 @@
             })
                 .then(response => response.text())
                 .then(data => {
-                    output.innerHTML = "Data submitted successfully!";
+                    output.innerHTML = "Submission successful!";
+                    clearForm();
                 })
-                .catch(err => {
-                    errorLogs.innerHTML = `Submission Error: ${err.message}`;
+                .catch(() => {
+                    output.innerHTML = "Error occurred while submitting!";
                 });
         });
+
+        function clearForm() {
+            fullNameField.value = '';
+            companyField.value = '';
+            emailField.value = '';
+            phoneNumberField.value = '';
+            linkedinUrlField.value = '';
+            notesField.value = '';
+            formData = {};
+        }
     </script>
 </body>
 </html>
