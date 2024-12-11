@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oracle Graph Interest Form</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
     <style>
         body {
@@ -66,20 +65,17 @@
 <body>
     <h1>Oracle Graph Interest Form</h1>
     <div class="container">
-        <!-- Scan Buttons -->
+        <!-- Scan QR Code Button -->
         <button id="scanQrCodeButton">Scan QR Code</button>
-        <button id="scanBusinessCardButton">Scan Business Card</button>
         <div id="qrReader" style="width: 100%; height: 250px; border: 1px solid #ccc; display: none;"></div>
-        <input type="file" accept="image/*" capture="environment" id="fileInput" style="display: none;">
 
         <!-- Form Fields -->
         <h2>Form Fields</h2>
-        <textarea id="notes" name="notes" placeholder="Add your notes here..."></textarea>
         <input type="text" id="fullName" name="fullName" placeholder="Full Name">
         <input type="text" id="company" name="company" placeholder="Company">
         <input type="email" id="email" name="email" placeholder="Email Address">
-        <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="Telephone Number">
         <input type="url" id="linkedinUrl" name="linkedinUrl" placeholder="LinkedIn URL">
+        <textarea id="notes" name="notes" placeholder="Add your notes here..."></textarea>
 
         <!-- Submit Button -->
         <button id="submitButton">Submit</button>
@@ -87,17 +83,15 @@
     </div>
 
     <script>
-        const notesField = document.getElementById('notes');
         const qrReader = new Html5Qrcode("qrReader");
-        const fileInput = document.getElementById('fileInput');
         const output = document.getElementById('output');
 
         // Form Fields
         const fullNameField = document.getElementById('fullName');
         const companyField = document.getElementById('company');
         const emailField = document.getElementById('email');
-        const phoneNumberField = document.getElementById('phoneNumber');
         const linkedinUrlField = document.getElementById('linkedinUrl');
+        const notesField = document.getElementById('notes');
 
         let formData = {};
 
@@ -148,31 +142,11 @@
             }
         }
 
-        // Business Card Scan Button
-        document.getElementById('scanBusinessCardButton').addEventListener('click', () => {
-            fileInput.style.display = 'block';
-        });
-
-        fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                Tesseract.recognize(
-                    file,
-                    'eng',
-                    { logger: info => console.log(info) }
-                ).then(({ data: { text } }) => {
-                    formData.notes = text;
-                    updateFormFields();
-                }).catch(console.error);
-            }
-        });
-
         // Update Form Fields
         function updateFormFields() {
             fullNameField.value = formData.fullName || '';
             companyField.value = formData.company || '';
             emailField.value = formData.email || '';
-            phoneNumberField.value = formData.phoneNumber || '';
             linkedinUrlField.value = formData.linkedinUrl || '';
             notesField.value = formData.notes || '';
         }
@@ -183,7 +157,6 @@
             formData.fullName = fullNameField.value;
             formData.company = companyField.value;
             formData.email = emailField.value;
-            formData.phoneNumber = phoneNumberField.value;
             formData.linkedinUrl = linkedinUrlField.value;
 
             // Google Apps Script URL
@@ -209,7 +182,6 @@
             fullNameField.value = '';
             companyField.value = '';
             emailField.value = '';
-            phoneNumberField.value = '';
             linkedinUrlField.value = '';
             notesField.value = '';
             formData = {};
